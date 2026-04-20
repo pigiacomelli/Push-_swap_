@@ -25,9 +25,9 @@ static int	valid_number(const char *s)
 	i = 0;
 	if (s[i] == '+' || s[i] == '-')
 		i++;
-	if (s[i] == '\0')
+	if (s[i] == '\0' || s[i] == ' ')
 		return (0);
-	while (s[i])
+	while (s[i] && s[i] != ' ')
 	{
 		if (s[i] < '0' || s[i] > '9')
 			return (0);
@@ -49,9 +49,7 @@ long	ft_atol_strict(const char *s)
 			sign = -1;
 		s++;
 	}
-	if (*s == '\0')
-		error_exit();
-	while (*s)
+	while (*s && *s != ' ')
 	{
 		result = result * 10 + (*s - '0');
 		if (result * sign > 2147483647 || result * sign < -2147483648)
@@ -80,25 +78,84 @@ void	check_duplicates(int *arr, int size)
 	}
 }
 
+static int	count_tokens(char *s)
+{
+	int	count;
+	int	in_token;
+
+	count = 0;
+	in_token = 0;
+	while (*s)
+	{
+		if (*s != ' ' && !in_token)
+		{
+			in_token = 1;
+			count++;
+		}
+		else if (*s == ' ')
+			in_token = 0;
+		s++;
+	}
+	return (count);
+}
+
+static int	fill_numbers(int *numbers, int argc, char **argv)
+{
+	int		i;
+	int		j;
+	char	*s;
+	int		k;
+
+	k = 0;
+	i = 1;
+	while (i < argc)
+	{
+		s = argv[i];
+		j = 0;
+		while (s[j])
+		{
+			while (s[j] == ' ')
+				j++;
+			if (s[j])
+			{
+				if (!valid_number(&s[j]))
+					return (-1);
+				numbers[k++] = (int)ft_atol_strict(&s[j]);
+				while (s[j] && s[j] != ' ')
+					j++;
+			}
+		}
+		i++;
+	}
+	return (k);
+}
+
 int	*parse_args(int argc, char **argv, int *size)
 {
 	int	i;
+	int	count;
 	int	*numbers;
 
 	if (argc <= 1)
 		return (NULL);
-	numbers = malloc(sizeof(int) * (argc - 1));
-	if (!numbers)
-		error_exit();
+	count = 0;
 	i = 1;
 	while (i < argc)
 	{
-		if (!valid_number(argv[i]))
-			error_exit();
-		numbers[i - 1] = (int)ft_atol_strict(argv[i]);
+		count += count_tokens(argv[i]);
 		i++;
 	}
-	*size = argc - 1;
+	if (count == 0)
+		return (NULL);
+	numbers = malloc(sizeof(int) * count);
+	if (!numbers)
+		error_exit();
+	if (fill_numbers(numbers, argc, argv) == -1)
+	{
+		free(numbers);
+		error_exit();
+	}
+	*size = count;
 	check_duplicates(numbers, *size);
 	return (numbers);
 }
